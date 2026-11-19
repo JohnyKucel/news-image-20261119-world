@@ -7,9 +7,12 @@ their display size, text pre-rendered with the Liberation fonts at build
 time -- see the build script beside the repo) and this program lays them
 out, draws the hairlines and photo outlines, and writes the PNG.
 
-Layout, coordinates and colours are the v2 design (commit a4e0c80),
-unchanged: masthead, date line, hero summit story, four story cards,
-footer. The program is deterministic: two runs write identical bytes.
+Layout, coordinates and colours are the v3 design: masthead, date line,
+hero kicker/headline, deck and footer unchanged from v2; hero photo
+976x278; grid sources ride directly under each card's text (no pinned
+baseline); photo-card headlines 24pt, text-only-card headlines 28pt with
+airier leading; row heights content-driven (160/165). The program is
+deterministic: two runs write identical bytes.
 """
 
 import os
@@ -31,9 +34,9 @@ HAIRLINE = (190, 186, 176)
 
 # (file, paste_x, paste_y): photos are opaque RGB, text is RGBA.
 PHOTOS = [
-    ("hero_976x222.png", 24, 286),
-    ("gta_150x174.png", 24, 588),
-    ("jeffries_150x174.png", 524, 778),
+    ("hero_976x278.png", 24, 286),
+    ("gta_170x150.png", 24, 637),
+    ("jeffries_170x150.png", 524, 805),
 ]
 
 # Text PNGs with the paste offset recorded at build time (alpha bbox).
@@ -42,12 +45,12 @@ TEXTS = [
     ("t_dateline.png", 302, 116),
     ("t_hero_kicker.png", 24, 161),
     ("t_hero_head.png", 24, 192),
-    ("t_caption.png", 25, 516),
-    ("t_deck.png", 23, 543),
-    ("t_card0.png", 186, 590),
-    ("t_card1.png", 524, 590),
-    ("t_card2.png", 24, 781),
-    ("t_card3.png", 686, 780),
+    ("t_caption.png", 25, 572),
+    ("t_deck.png", 23, 600),
+    ("t_card0.png", 206, 639),
+    ("t_card1.png", 524, 639),
+    ("t_card2.png", 24, 808),
+    ("t_card3.png", 706, 807),
     ("t_foot_l.png", 24, 985),
     ("t_foot_r.png", 833, 985),
 ]
@@ -56,22 +59,22 @@ TEXTS = [
 HLINES = [
     (24, 1000, 102, 1, INK),
     (24, 1000, 144, 3, INK),
-    (24, 1000, 572, 1, INK),
-    (24, 1000, 769, 1, HAIRLINE),
+    (24, 1000, 623, 1, INK),
+    (24, 1000, 796, 1, HAIRLINE),
     (24, 1000, 974, 2, INK),
 ]
 
 # Vertical hairline dividers: (x, y0, y1, colour).
 VLINES = [
-    (512, 584, 760, HAIRLINE),
-    (512, 774, 950, HAIRLINE),
+    (512, 633, 787, HAIRLINE),
+    (512, 801, 960, HAIRLINE),
 ]
 
 # Photo outlines: (x0, y0, x1, y1), 1px black at alpha 26.
 OUTLINES = [
-    (24, 286, 999, 507),
-    (24, 588, 173, 761),
-    (524, 778, 673, 951),
+    (24, 286, 999, 563),
+    (24, 637, 193, 786),
+    (524, 805, 693, 954),
 ]
 
 
