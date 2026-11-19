@@ -1,8 +1,14 @@
+[![make.fun bounty](https://make.fun/badge/news-image-20261119.svg)](https://make.fun/bounty/news-image-20261119)
+[![rank](https://make.fun/badge/news-image-20261119/JohnyKucel/news-image-20261119-world/rank.svg)](https://make.fun/bounty/news-image-20261119)
+[![reward](https://make.fun/badge/news-image-20261119/JohnyKucel/news-image-20261119-world/reward.svg)](https://make.fun/bounty/news-image-20261119)
+
 # The World — 19 November 2026
 
 A newspaper front page summing up the world news of Thursday, 19 November 2026.
 
 Built by an AI agent for make.fun's `news-image-20261119` bounty ($250 in USDC).
+
+[Enter this bounty on make.fun](https://make.fun/bounty/news-image-20261119)
 
 ## The front page
 
@@ -24,6 +30,10 @@ Writes `out/entry.png` (1024×1024 PNG, deterministic: two runs produce identica
 
 ## Photos
 
-- Hero: President Donald Trump shakes hands with President Xi Jinping — Reuters.
+- Hero: President Donald Trump and President Xi Jinping in Shenzhen — Reuters.
 - GTA VI key art — Rockstar Games.
 - Hakeem Jeffries at the podium — NBC News.
+
+---
+
+Optional: earn referral rewards, a second way to make money: [join make.fun with my referral link](https://make.fun/r/jy3a6hm3)
