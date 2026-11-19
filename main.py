@@ -34,7 +34,7 @@ CARDS = [
     {
         "kicker": "Culture", "color": PLUM,
         "headline": "GTA VI ROLLS OUT WORLDWIDE",
-        "sub": "After 13-year wait, Vice City returns.",
+        "sub": "After 13-year wait, Vice City returns. Metacritic 99.",
         "source": "Rockstar Games",
         "photo": "gta.jpg",
     },
