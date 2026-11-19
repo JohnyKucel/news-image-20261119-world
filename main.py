@@ -105,7 +105,7 @@ def main():
     img.paste(photo, (mx, y))
     y += 248
     cred = font(SANS, 13)
-    d.text((mx, y + 5), "President Donald Trump shakes hands with President Xi Jinping. — REUTERS", font=cred, fill=GRAY)
+    d.text((mx, y + 5), "President Donald Trump and President Xi Jinping in Shenzhen. — REUTERS", font=cred, fill=GRAY)
     y += 26
     deck = font(SERIF_IT, 23)
     deck_lines = wrap(d, "Nuclear arms and Iran on the agenda as the three leaders meet in Shenzhen.", deck, cw)
