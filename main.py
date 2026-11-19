@@ -17,9 +17,10 @@ Politics 251-11, each a 28pt stat with a micro-label above it --
 METACRITIC / PINJAMAN UKRAINA / HASIL VOTE -- under a thin hairline
 rule, source right-aligned on the figure baseline; v4.1 shrank the
 figures from 38pt and added the labels after Grey asked what the bare
-numbers meant), a drop cap on the
-numberless Conflict card, a deterministic paper-grain tile over the ink,
-and a discreet footer sources line. Facts and words are unchanged from
+numbers meant), a thin hairline above the sub on the numberless
+Conflict card (v4.2: the 58pt drop cap that used to sit there split
+"Bahrain" into "B | ahrain" and was removed), a deterministic
+paper-grain tile over the ink, and a discreet footer sources line. Facts and words are unchanged from
 v3. The program is deterministic: two runs write identical bytes.
 """
 
