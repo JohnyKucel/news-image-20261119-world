@@ -1,174 +1,213 @@
 import os
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(os.environ.get("MAKEFUN_OUTPUT_DIR", os.path.join(BASE, "out")), "entry.png")
+ROOT = os.path.dirname(os.path.abspath(__file__))
+DEST = os.path.join(os.environ.get("MAKEFUN_OUTPUT_DIR", os.path.join(ROOT, "out")), "entry.png")
 
-W, H = 1024, 1024
+PAGE_W, PAGE_H = 1024, 1024
+MARGIN = 24
+CONTENT_W = PAGE_W - 2 * MARGIN
+COL_W = (CONTENT_W - 24) // 2
+
 PAPER = (250, 248, 242)
 INK = (22, 22, 20)
-GRAY = (112, 108, 100)
-FAINT = (168, 164, 154)
+BODY_GRAY = (70, 68, 64)
+HAIRLINE = (190, 186, 176)
 NAVY = (31, 58, 95)
 BRICK = (168, 54, 38)
-PURPLE = (96, 58, 120)
+PLUM = (96, 58, 120)
 TEAL = (18, 110, 105)
-OCHRE = (176, 124, 32)
+OCHRE = (133, 84, 0)
 
-SERIF = "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"
-SERIF_REG = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"
-SERIF_IT = "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf"
+SERIF_BOLD = "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"
+SERIF = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"
+SERIF_ITALIC = "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf"
 SANS = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-SANS_B = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+SANS_BOLD = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+
+HERO_KICKER = "Diplomacy"
+HERO_HEADLINE = "TRUMP, XI AND PUTIN MEET IN SHENZHEN"
+HERO_CAPTION = "President Donald Trump and President Xi Jinping in Shenzhen. — Reuters"
+HERO_DECK = "Nuclear arms and Iran on the agenda."
+
+CARDS = [
+    {
+        "kicker": "Culture", "color": PLUM,
+        "headline": "GTA VI ROLLS OUT WORLDWIDE",
+        "sub": "After 13-year wait, Vice City returns.",
+        "source": "Rockstar Games",
+        "photo": "gta.jpg",
+    },
+    {
+        "kicker": "Conflict", "color": BRICK,
+        "headline": "IRAN HITS US BASE IN KUWAIT",
+        "sub": "Bahrain intercepts more attacks after the Qeshm strike.",
+        "source": "AP, Reuters",
+        "photo": None,
+    },
+    {
+        "kicker": "Europe", "color": TEAL,
+        "headline": "EU PROPOSES 45 BILLION EURO UKRAINE LOAN",
+        "sub": "Repayment via Russian reparations.",
+        "source": "\u20ac20B budget, \u20ac25B military \u2014 Reuters, EU Commission",
+        "photo": None,
+    },
+    {
+        "kicker": "Politics", "color": OCHRE,
+        "headline": "JEFFRIES NOMINATED FOR SPEAKER",
+        "sub": "Democrats back him 251\u201311; first Black Speaker if elected Jan 3.",
+        "source": "CNN, USA Today, NPR",
+        "photo": "jeffries.jpg",
+    },
+]
 
 
-def font(path, size):
+def load(path, size):
     return ImageFont.truetype(path, size)
 
 
-def wrap(draw, text, fnt, width):
-    out = []
-    for part in text.split("\n"):
-        words = part.split()
-        lines, cur = [], ""
+def fit_lines(draw, text, face, width):
+    lines = []
+    for chunk in text.split("\n"):
+        words = chunk.split()
+        current = ""
         for word in words:
-            trial = word if not cur else cur + " " + word
-            if draw.textlength(trial, font=fnt) <= width:
-                cur = trial
+            trial = word if not current else current + " " + word
+            if draw.textlength(trial, font=face) <= width:
+                current = trial
             else:
-                lines.append(cur)
-                cur = word
-        if cur:
-            lines.append(cur)
-        out.extend(lines)
-    return out
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+    return lines
 
 
-def centre(draw, y, text, fnt, fill, cx=W // 2):
-    draw.text((cx, y), text, font=fnt, fill=fill, anchor="ma")
+def balanced_pair(draw, text, face, width):
+    words = text.split()
+    best = None
+    for cut in range(1, len(words)):
+        first = " ".join(words[:cut])
+        second = " ".join(words[cut:])
+        w1 = draw.textlength(first, font=face)
+        w2 = draw.textlength(second, font=face)
+        if w1 > width or w2 > width:
+            continue
+        gap = abs(w1 - w2)
+        if best is None or gap < best[0]:
+            best = (gap, [first, second])
+    return best[1]
 
 
-def rule(draw, x0, x1, y, fill=INK, width=1):
-    draw.line([(x0, y), (x1, y)], fill=fill, width=width)
+def crop_to(name, width, height, focus_y=0.5):
+    shot = Image.open(os.path.join(ROOT, "assets", name)).convert("RGB")
+    return ImageOps.fit(shot, (width, height), Image.LANCZOS, centering=(0.5, focus_y))
 
 
-def fit(path, tw, th, cy=0.45):
-    im = Image.open(os.path.join(BASE, "assets", path)).convert("RGB")
-    return ImageOps.fit(im, (tw, th), Image.LANCZOS, centering=(0.5, cy))
+def hline(draw, x0, x1, y, color=INK, px=1):
+    draw.line([(x0, y), (x1, y)], fill=color, width=px)
 
 
-def kicker(draw, x, y, label, color, fnt):
-    draw.text((x, y), label, font=fnt, fill=color)
+def render_card(page, draw, card, x, top, row_h):
+    thumb_w = 150
+    if card["photo"]:
+        shot = crop_to(card["photo"], thumb_w, row_h - 8, 0.5)
+        page.paste(shot, (x, top + 4))
+        text_x = x + thumb_w + 12
+        text_w = COL_W - thumb_w - 12
+    else:
+        text_x = x
+        text_w = COL_W
+
+    kicker_face = load(SERIF, 17)
+    draw.text((text_x, top + 2), card["kicker"], font=kicker_face, fill=card["color"])
+
+    head_face = load(SERIF_BOLD, 23)
+    lines = fit_lines(draw, card["headline"], head_face, text_w)
+    assert len(lines) <= 3, (card["kicker"], lines)
+    y = top + 28
+    for line in lines:
+        draw.text((text_x, y), line, font=head_face, fill=INK)
+        y += 28
+
+    sub_face = load(SERIF, 15)
+    sub_lines = fit_lines(draw, card["sub"], sub_face, text_w)
+    assert len(sub_lines) <= 2, (card["kicker"], sub_lines)
+    y += 6
+    for line in sub_lines:
+        draw.text((text_x, y), line, font=sub_face, fill=BODY_GRAY)
+        y += 20
+
+    src_face = load(SERIF, 13)
+    draw.text((text_x, top + row_h - 18), card["source"], font=src_face, fill=BODY_GRAY)
 
 
 def main():
-    img = Image.new("RGB", (W, H), PAPER)
-    d = ImageDraw.Draw(img)
-    mx = 24
-    rx = W - mx
-    cw = rx - mx
+    page = Image.new("RGBA", (PAGE_W, PAGE_H), PAPER + (255,))
+    draw = ImageDraw.Draw(page)
+    right = PAGE_W - MARGIN
+    outlines = []
 
-    mast = font(SERIF, 96)
-    centre(d, 6, "THE WORLD", mast, INK)
-    rule(d, mx, rx, 112, INK, 1)
-    date_f = font(SANS_B, 30)
-    centre(d, 120, "THURSDAY, 19 NOVEMBER 2026", date_f, INK)
-    small = font(SANS_B, 15)
-    d.text((mx, 158), "WORLD NEWS", font=small, fill=INK)
-    d.text((rx, 158), "LATE EDITION", font=small, fill=INK, anchor="ra")
-    rule(d, mx, rx, 182, INK, 3)
+    mast_face = load(SERIF_BOLD, 92)
+    draw.text((PAGE_W // 2, 4), "THE WORLD", font=mast_face, fill=INK, anchor="ma")
+    hline(draw, MARGIN, right, 102)
+    date_face = load(SANS_BOLD, 27)
+    draw.text((PAGE_W // 2, 110), "THURSDAY, 19 NOVEMBER 2026", font=date_face, fill=INK, anchor="ma")
+    hline(draw, MARGIN, right, 144, px=3)
 
-    strip = font(SANS_B, 19)
-    strip_s = font(SANS, 15)
-    cells = [("€45 BN", "EU UKRAINE LOAN"), ("99", "GTA VI METACRITIC"), ("251–11", "JEFFRIES NOMINATION")]
-    third = cw / 3
-    for i, (num, lab) in enumerate(cells):
-        cx = mx + third * i + third / 2
-        d.text((cx, 194), num, font=strip, fill=INK, anchor="ma")
-        d.text((cx, 220), lab, font=strip_s, fill=GRAY, anchor="ma")
-        if i:
-            d.line([(mx + third * i, 196), (mx + third * i, 236)], fill=FAINT, width=1)
-    rule(d, mx, rx, 244, INK, 1)
+    kicker_face = load(SERIF, 18)
+    draw.text((MARGIN, 156), HERO_KICKER, font=kicker_face, fill=NAVY)
 
-    kick = font(SANS_B, 16)
-    kicker(d, mx, 258, "DIPLOMACY", NAVY, kick)
-    hero_f = font(SERIF, 43)
-    h1 = wrap(d, "TRUMP, XI AND PUTIN MEET IN SHENZHEN", hero_f, cw)
-    h2 = wrap(d, "FIRST THREE-WAY SUMMIT", hero_f, cw)
-    assert len(h1) == 1 and len(h2) == 1, (h1, h2)
-    y = 282
-    for line in h1 + h2:
-        d.text((mx, y), line, font=hero_f, fill=INK)
-        y += 50
+    hero_face = load(SERIF_BOLD, 42)
+    hero_lines = balanced_pair(draw, HERO_HEADLINE, hero_face, CONTENT_W)
+    y = 182
+    for line in hero_lines:
+        draw.text((MARGIN, y), line, font=hero_face, fill=INK)
+        y += 48
 
-    photo = fit("hero.jpg", cw, 248, 0.28)
-    img.paste(photo, (mx, y))
-    y += 248
-    cred = font(SANS, 13)
-    d.text((mx, y + 5), "President Donald Trump and President Xi Jinping in Shenzhen. — REUTERS", font=cred, fill=GRAY)
-    y += 26
-    deck = font(SERIF_IT, 23)
-    deck_lines = wrap(d, "Nuclear arms and Iran on the agenda as the three leaders meet in Shenzhen.", deck, cw)
-    assert len(deck_lines) == 1, deck_lines
-    d.text((mx, y), deck_lines[0], font=deck, fill=INK)
-    y += 34
-    rule(d, mx, rx, y, INK, 1)
-    y += 12
+    hero = crop_to("hero.jpg", CONTENT_W, 222, 0.30)
+    page.paste(hero, (MARGIN, 286))
+    outlines.append((MARGIN, 286, MARGIN + CONTENT_W - 1, 286 + 222 - 1))
 
-    grid_top = y
-    col_w = (cw - 24) // 2
-    row_h = (972 - grid_top - 10) // 2
-    cards = [
-        ("CULTURE", PURPLE, "GTA VI ROLLS OUT WORLDWIDE", "gta.jpg", "REUTERS, ROCKSTAR"),
-        ("CONFLICT", BRICK, "IRAN HITS US BASE IN KUWAIT\nBAHRAIN INTERCEPTS MORE ATTACKS", None, "AP, REUTERS, 18 NOV"),
-        ("EUROPE", TEAL, "EU PROPOSES 45 BILLION EURO UKRAINE LOAN", None, "€20 BN BUDGET · €25 BN MILITARY — REUTERS, EU COMMISSION"),
-        ("POLITICS", OCHRE, "JEFFRIES NOMINATED FOR SPEAKER", "jeffries.jpg", "CNN, USA TODAY, NPR"),
-    ]
-    subs = [
-        "AFTER 13-YEAR WAIT; VICE CITY RETURNS",
-        "AFTER US STRIKE ON QESHM ISLAND",
-        "REPAYMENT VIA RUSSIAN REPARATIONS",
-        "FIRST BLACK SPEAKER IF ELECTED JAN 3",
-    ]
-    head_f = font(SERIF, 23)
-    sub_f = font(SANS, 14)
-    src_f = font(SANS, 12)
-    for idx, (label, color, head, photo_name, src) in enumerate(cards):
+    cap_face = load(SANS, 13)
+    draw.text((MARGIN, 514), HERO_CAPTION, font=cap_face, fill=BODY_GRAY)
+    deck_face = load(SERIF_ITALIC, 22)
+    draw.text((MARGIN, 538), HERO_DECK, font=deck_face, fill=INK)
+    hline(draw, MARGIN, right, 572)
+
+    row_h = 182
+    grid_top = 584
+    for idx, card in enumerate(CARDS):
         col = idx % 2
         row = idx // 2
-        x = mx + col * (col_w + 24)
-        top = grid_top + row * row_h
-        tx = x
-        tw = col_w
-        if photo_name:
-            ph = fit(photo_name, 148, row_h - 16)
-            img.paste(ph, (x, top + 8))
-            tx = x + 160
-            tw = col_w - 160
-        d.rectangle([(tx, top), (tx + 56, top + 4)], fill=color)
-        kicker(d, tx, top + 10, label, color, kick)
-        hl = wrap(d, head, head_f, tw)
-        assert len(hl) <= 2, (label, hl)
-        ty = top + 32
-        for line in hl:
-            d.text((tx, ty), line, font=head_f, fill=INK)
-            ty += 29
-        sl = wrap(d, subs[idx], sub_f, tw)
-        assert len(sl) == 1, (label, sl)
-        d.text((tx, ty + 2), sl[0], font=sub_f, fill=GRAY)
-        d.text((tx, ty + 24), src, font=src_f, fill=FAINT)
+        x = MARGIN + col * (COL_W + 24)
+        top = grid_top + row * (row_h + 8)
+        if card["photo"]:
+            outlines.append((x, top + 4, x + 150 - 1, top + 4 + row_h - 8 - 1))
+        render_card(page, draw, card, x, top, row_h)
         if col == 0:
-            d.line([(x + col_w + 12, top), (x + col_w + 12, top + row_h - 12)], fill=FAINT, width=1)
+            draw.line(
+                [(x + COL_W + 12, top), (x + COL_W + 12, top + row_h - 6)],
+                fill=HAIRLINE, width=1,
+            )
         if row == 0:
-            rule(d, mx, rx, top + row_h, FAINT, 1)
+            hline(draw, MARGIN, right, top + row_h + 3, color=HAIRLINE)
 
-    rule(d, mx, rx, 972, INK, 2)
-    foot = font(SANS_B, 14)
-    centre(d, 980, "THE WORLD  |  THURSDAY, 19 NOVEMBER 2026", foot, INK)
+    hline(draw, MARGIN, right, 974, px=2)
+    foot_bold = load(SERIF_BOLD, 14)
+    foot_reg = load(SERIF, 14)
+    draw.text((MARGIN, 982), "The World", font=foot_bold, fill=INK)
+    draw.text((right, 982), "Thursday, 19 November 2026", font=foot_reg, fill=INK, anchor="ra")
 
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    img.save(OUT, optimize=True)
-    print("wrote", OUT)
+    veil = Image.new("RGBA", page.size, (0, 0, 0, 0))
+    veil_draw = ImageDraw.Draw(veil)
+    for box in outlines:
+        veil_draw.rectangle(box, outline=(0, 0, 0, 26), width=1)
+    page = Image.alpha_composite(page, veil)
+
+    os.makedirs(os.path.dirname(DEST), exist_ok=True)
+    page.convert("RGB").save(DEST, optimize=True)
+    print("wrote", DEST)
 
 
 if __name__ == "__main__":
