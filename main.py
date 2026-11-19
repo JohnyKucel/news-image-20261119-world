@@ -13,7 +13,11 @@ warm ink background #171310 with cream type (15.8:1), a red signal chip
 dateline (one red, one function -- no BREAKING bar, no LIVE element, no
 alarm type), hero photo 976x292, deck opened by the "SHENZHEN --"
 dateline, data figures inside the cards (Europe EUR45B, Culture 99,
-Politics 251-11, each on one row with its source), a drop cap on the
+Politics 251-11, each a 28pt stat with a micro-label above it --
+METACRITIC / PINJAMAN UKRAINA / HASIL VOTE -- under a thin hairline
+rule, source right-aligned on the figure baseline; v4.1 shrank the
+figures from 38pt and added the labels after Grey asked what the bare
+numbers meant), a drop cap on the
 numberless Conflict card, a deterministic paper-grain tile over the ink,
 and a discreet footer sources line. Facts and words are unchanged from
 v3. The program is deterministic: two runs write identical bytes.
@@ -39,9 +43,9 @@ RED = (192, 57, 43)
 
 # (file, paste_x, paste_y): photos are opaque RGB, text is RGBA.
 PHOTOS = [
-    ("hero_976x292.png", 24, 256),
-    ("gta_170x150.png", 24, 615),
-    ("jeffries_170x150.png", 524, 794),
+    ("hero_976x267.png", 24, 256),
+    ("gta_170x150.png", 24, 590),
+    ("jeffries_170x150.png", 524, 781),
 ]
 
 # Text PNGs with the paste offset recorded at build time (alpha bbox).
@@ -51,12 +55,12 @@ TEXTS = [
     ("t_hero_kicker.png", 24, 131),
     ("t_chip.png", 804, 126),
     ("t_hero_head.png", 24, 167),
-    ("t_caption.png", 25, 554),
-    ("t_deck.png", 24, 580),
-    ("t_card0.png", 206, 617),
-    ("t_card1.png", 524, 617),
-    ("t_card2.png", 24, 797),
-    ("t_card3.png", 706, 796),
+    ("t_caption.png", 25, 529),
+    ("t_deck.png", 24, 555),
+    ("t_card0.png", 206, 592),
+    ("t_card1.png", 524, 592),
+    ("t_card2.png", 24, 784),
+    ("t_card3.png", 706, 783),
     ("t_foot_l.png", 24, 981),
     ("t_foot_c.png", 401, 982),
     ("t_foot_r.png", 833, 981),
@@ -65,23 +69,23 @@ TEXTS = [
 # Hairlines: (x0, x1, y, height, colour). Height 1, 2 or 3 rows.
 HLINES = [
     (24, 1000, 75, 1, HAIRLINE),
-    (24, 1000, 114, 3, RED),
-    (24, 1000, 603, 1, HAIRLINE),
-    (24, 1000, 785, 1, HAIRLINE),
+    (24, 1000, 113, 3, RED),
+    (24, 1000, 578, 1, HAIRLINE),
+    (24, 1000, 772, 1, HAIRLINE),
     (24, 1000, 970, 2, HAIRLINE),
 ]
 
 # Vertical hairline dividers: (x, y0, y1, colour).
 VLINES = [
-    (512, 611, 776, HAIRLINE),
-    (512, 790, 956, HAIRLINE),
+    (512, 586, 769, HAIRLINE),
+    (512, 777, 956, HAIRLINE),
 ]
 
 # Photo outlines: (x0, y0, x1, y1), 1px cream at alpha 56.
 OUTLINES = [
-    (24, 256, 999, 547),
-    (24, 615, 193, 764),
-    (524, 794, 693, 943),
+    (24, 256, 999, 522),
+    (24, 590, 193, 739),
+    (524, 781, 693, 930),
 ]
 
 
