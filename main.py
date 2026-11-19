@@ -7,12 +7,16 @@ their display size, text pre-rendered with the Liberation fonts at build
 time -- see the build script beside the repo) and this program lays them
 out, draws the hairlines and photo outlines, and writes the PNG.
 
-Layout, coordinates and colours are the v3 design: masthead, date line,
-hero kicker/headline, deck and footer unchanged from v2; hero photo
-976x278; grid sources ride directly under each card's text (no pinned
-baseline); photo-card headlines 24pt, text-only-card headlines 28pt with
-airier leading; row heights content-driven (160/165). The program is
-deterministic: two runs write identical bytes.
+Layout, coordinates and colours are the v4 design ("evening edition"):
+warm ink background #171310 with cream type (15.8:1), a red signal chip
+"FIRST THREE-WAY SUMMIT" on the kicker line and a red 3px rule under the
+dateline (one red, one function -- no BREAKING bar, no LIVE element, no
+alarm type), hero photo 976x292, deck opened by the "SHENZHEN --"
+dateline, data figures inside the cards (Europe EUR45B, Culture 99,
+Politics 251-11, each on one row with its source), a drop cap on the
+numberless Conflict card, a deterministic paper-grain tile over the ink,
+and a discreet footer sources line. Facts and words are unchanged from
+v3. The program is deterministic: two runs write identical bytes.
 """
 
 import os
@@ -28,58 +32,64 @@ ASSETS = os.path.join(ROOT, "assets")
 
 PAGE_W, PAGE_H = 1024, 1024
 
-PAPER = (250, 248, 242)
-INK = (22, 22, 20)
-HAIRLINE = (190, 186, 176)
+BG = (23, 19, 16)
+CREAM = (242, 237, 227)
+HAIRLINE = (139, 130, 112)
+RED = (192, 57, 43)
 
 # (file, paste_x, paste_y): photos are opaque RGB, text is RGBA.
 PHOTOS = [
-    ("hero_976x278.png", 24, 286),
-    ("gta_170x150.png", 24, 637),
-    ("jeffries_170x150.png", 524, 805),
+    ("hero_976x292.png", 24, 256),
+    ("gta_170x150.png", 24, 615),
+    ("jeffries_170x150.png", 524, 794),
 ]
 
 # Text PNGs with the paste offset recorded at build time (alpha bbox).
 TEXTS = [
-    ("t_masthead.png", 226, 25),
-    ("t_dateline.png", 302, 116),
-    ("t_hero_kicker.png", 24, 161),
-    ("t_hero_head.png", 24, 192),
-    ("t_caption.png", 25, 572),
-    ("t_deck.png", 23, 600),
-    ("t_card0.png", 206, 639),
-    ("t_card1.png", 524, 639),
-    ("t_card2.png", 24, 808),
-    ("t_card3.png", 706, 807),
-    ("t_foot_l.png", 24, 985),
-    ("t_foot_r.png", 833, 985),
+    ("t_masthead.png", 276, 17),
+    ("t_dateline.png", 317, 87),
+    ("t_hero_kicker.png", 24, 131),
+    ("t_chip.png", 804, 126),
+    ("t_hero_head.png", 24, 167),
+    ("t_caption.png", 25, 554),
+    ("t_deck.png", 24, 580),
+    ("t_card0.png", 206, 617),
+    ("t_card1.png", 524, 617),
+    ("t_card2.png", 24, 797),
+    ("t_card3.png", 706, 796),
+    ("t_foot_l.png", 24, 981),
+    ("t_foot_c.png", 401, 982),
+    ("t_foot_r.png", 833, 981),
 ]
 
 # Hairlines: (x0, x1, y, height, colour). Height 1, 2 or 3 rows.
 HLINES = [
-    (24, 1000, 102, 1, INK),
-    (24, 1000, 144, 3, INK),
-    (24, 1000, 623, 1, INK),
-    (24, 1000, 796, 1, HAIRLINE),
-    (24, 1000, 974, 2, INK),
+    (24, 1000, 75, 1, HAIRLINE),
+    (24, 1000, 114, 3, RED),
+    (24, 1000, 603, 1, HAIRLINE),
+    (24, 1000, 785, 1, HAIRLINE),
+    (24, 1000, 970, 2, HAIRLINE),
 ]
 
 # Vertical hairline dividers: (x, y0, y1, colour).
 VLINES = [
-    (512, 633, 787, HAIRLINE),
-    (512, 801, 960, HAIRLINE),
+    (512, 611, 776, HAIRLINE),
+    (512, 790, 956, HAIRLINE),
 ]
 
-# Photo outlines: (x0, y0, x1, y1), 1px black at alpha 26.
+# Photo outlines: (x0, y0, x1, y1), 1px cream at alpha 56.
 OUTLINES = [
-    (24, 286, 999, 563),
-    (24, 637, 193, 786),
-    (524, 805, 693, 954),
+    (24, 256, 999, 547),
+    (24, 615, 193, 764),
+    (524, 794, 693, 943),
 ]
 
 
 def read_png(path):
-    """Decode a non-interlaced 8-bit PNG into (width, height, RGBA bytes)."""
+    """Decode a non-interlaced 8-bit PNG.
+
+    Returns (width, height, data, channels): RGB bytes (3/px) for colour
+    types 0 and 2, RGBA bytes (4/px) for colour type 6."""
     with open(path, "rb") as handle:
         data = handle.read()
     if data[:8] != b"\x89PNG\r\n\x1a\n":
@@ -105,7 +115,7 @@ def read_png(path):
     channels = {0: 1, 2: 3, 6: 4}[color_type]
     raw = zlib.decompress(bytes(idat))
     stride = width * channels
-    out = bytearray(width * height * 4)
+    out = bytearray(width * height * channels)
     prev = bytearray(stride)
     src = 0
     for y in range(height):
@@ -140,23 +150,16 @@ def read_png(path):
         elif filt != 0:
             raise ValueError("bad PNG filter %d in %s" % (filt, path))
         prev = line
-        row = y * width * 4
-        if channels == 4:
+        row = y * width * channels
+        if channels == 3:
+            out[row:row + width * 3] = line
+        elif channels == 4:
             out[row:row + width * 4] = line
-        elif channels == 3:
-            for x in range(width):
-                o = row + x * 4
-                s = x * 3
-                out[o] = line[s]
-                out[o + 1] = line[s + 1]
-                out[o + 2] = line[s + 2]
-                out[o + 3] = 255
         else:
             for x in range(width):
-                o = row + x * 4
+                o = row + x * 3
                 out[o] = out[o + 1] = out[o + 2] = line[x]
-                out[o + 3] = 255
-    return width, height, out
+    return width, height, out, channels
 
 
 def chunk(kind, payload):
@@ -190,8 +193,17 @@ def write_png(path, width, height, rgb):
         handle.write(png)
 
 
-def paste(page, img, img_w, img_h, at_x, at_y):
-    """Alpha-over composite of an RGBA image onto the RGB page buffer."""
+def paste(page, img, img_w, img_h, at_x, at_y, channels):
+    """Composite an image onto the RGB page buffer.
+
+    RGB images (photos, grain) are opaque: fast row slice copy.
+    RGBA images (text) are alpha-over composited per pixel."""
+    if channels == 3:
+        for y in range(img_h):
+            d = ((at_y + y) * PAGE_W + at_x) * 3
+            s = y * img_w * 3
+            page[d:d + img_w * 3] = img[s:s + img_w * 3]
+        return
     for y in range(img_h):
         page_row = (at_y + y) * PAGE_W * 3
         img_row = y * img_w * 4
@@ -223,31 +235,38 @@ def fill_rect(page, x0, y0, x1, y1, color):
 
 
 def outline_rect(page, x0, y0, x1, y1):
-    """1px black border at alpha 26 over the page (the v2 photo veil)."""
+    """1px cream border at alpha 56 over the page (photo frame on ink)."""
+    inv = 255 - 56
     for x in range(x0, x1 + 1):
         for y in (y0, y1):
             d = (y * PAGE_W + x) * 3
-            page[d] = (page[d] * 229 + 127) // 255
-            page[d + 1] = (page[d + 1] * 229 + 127) // 255
-            page[d + 2] = (page[d + 2] * 229 + 127) // 255
+            page[d] = (CREAM[0] * 56 + page[d] * inv + 127) // 255
+            page[d + 1] = (CREAM[1] * 56 + page[d + 1] * inv + 127) // 255
+            page[d + 2] = (CREAM[2] * 56 + page[d + 2] * inv + 127) // 255
     for y in range(y0 + 1, y1):
         for x in (x0, x1):
             d = (y * PAGE_W + x) * 3
-            page[d] = (page[d] * 229 + 127) // 255
-            page[d + 1] = (page[d + 1] * 229 + 127) // 255
-            page[d + 2] = (page[d + 2] * 229 + 127) // 255
+            page[d] = (CREAM[0] * 56 + page[d] * inv + 127) // 255
+            page[d + 1] = (CREAM[1] * 56 + page[d + 1] * inv + 127) // 255
+            page[d + 2] = (CREAM[2] * 56 + page[d + 2] * inv + 127) // 255
 
 
 def main():
     page = bytearray(PAGE_W * PAGE_H * 3)
     for i in range(0, len(page), 3):
-        page[i] = PAPER[0]
-        page[i + 1] = PAPER[1]
-        page[i + 2] = PAPER[2]
+        page[i] = BG[0]
+        page[i + 1] = BG[1]
+        page[i + 2] = BG[2]
+
+    # Ink-paper grain over the whole page (deterministic 256px tile).
+    gw, gh, grain, gch = read_png(os.path.join(ASSETS, "grain_256.png"))
+    for gy in range(0, PAGE_H, gh):
+        for gx in range(0, PAGE_W, gw):
+            paste(page, grain, gw, gh, gx, gy, gch)
 
     for name, x, y in PHOTOS:
-        w, h, img = read_png(os.path.join(ASSETS, name))
-        paste(page, img, w, h, x, y)
+        w, h, img, ch = read_png(os.path.join(ASSETS, name))
+        paste(page, img, w, h, x, y, ch)
 
     for x0, x1, y, height, color in HLINES:
         top = y - (height - 1) // 2
@@ -256,8 +275,8 @@ def main():
         fill_rect(page, x, y0, x, y1, color)
 
     for name, x, y in TEXTS:
-        w, h, img = read_png(os.path.join(ASSETS, name))
-        paste(page, img, w, h, x, y)
+        w, h, img, ch = read_png(os.path.join(ASSETS, name))
+        paste(page, img, w, h, x, y, ch)
 
     for x0, y0, x1, y1 in OUTLINES:
         outline_rect(page, x0, y0, x1, y1)
